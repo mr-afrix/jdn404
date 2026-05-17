@@ -45,8 +45,12 @@ export const LANGUAGE_COLORS: Record<string, string> = {
   default: "#8b8b8b",
 };
 
+const TOKEN = import.meta.env.VITE_GITHUB_TOKEN as string | undefined;
+
 async function gh<T>(path: string): Promise<T> {
-  const res = await fetch(`${API}${path}`, { headers: { Accept: "application/vnd.github.v3+json" } });
+  const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
+  if (TOKEN) headers["Authorization"] = `Bearer ${TOKEN}`;
+  const res = await fetch(`${API}${path}`, { headers });
   if (!res.ok) {
     if (res.status === 404) throw new Error(`Not found: ${path}`);
     if (res.status === 403) throw new Error("GitHub API rate limit hit. Try again in a few minutes.");
