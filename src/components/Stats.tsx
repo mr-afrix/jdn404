@@ -37,7 +37,8 @@ const RingStat = ({
 export const Stats = () => {
   const { data: user } = useGitHubUser();
   const { data: repos } = useGitHubRepos();
-  const langs = repos ? languageBreakdown(repos) : [];
+  const ownRepos = repos ? repos.filter(r => !r.fork) : [];
+  const langs = ownRepos.length ? languageBreakdown(repos!) : [];
   const top = langs[0]?.name || "N/A";
   const stars = repos ? totalStars(repos) : 0;
   const forks = repos ? totalForks(repos) : 0;
@@ -45,7 +46,7 @@ export const Stats = () => {
   const items = [
     { value: user?.followers ?? 0, max: Math.max(user?.followers ?? 0, 50), label: "Followers", icon: Users, color: "hsl(175 85% 50%)" },
     { value: user?.following ?? 0, max: Math.max(user?.following ?? 0, 20), label: "Following", icon: UserPlus, color: "hsl(280 75% 60%)" },
-    { value: user?.public_repos ?? 0, max: Math.max(user?.public_repos ?? 0, 20), label: "Repos", icon: BookOpen, color: "hsl(45 100% 60%)" },
+    { value: ownRepos.length, max: Math.max(ownRepos.length, 20), label: "Repos", icon: BookOpen, color: "hsl(45 100% 60%)" },
     { value: stars, max: Math.max(stars, 30), label: "Stars", icon: Star, color: "hsl(48 100% 55%)" },
     { value: forks, max: Math.max(forks, 30), label: "Forks", icon: GitFork, color: "hsl(210 100% 60%)" },
     { value: 1, max: 1, label: "Top Lang", icon: Code2, color: LANGUAGE_COLORS[top] || LANGUAGE_COLORS.default, display: top },

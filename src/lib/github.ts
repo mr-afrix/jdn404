@@ -63,12 +63,12 @@ export const fetchUser = (u = GITHUB_USERNAME) => gh<GitHubUser>(`/users/${u}`);
 export const fetchRepos = (u = GITHUB_USERNAME) =>
   gh<GitHubRepo[]>(`/users/${u}/repos?per_page=100&sort=updated`);
 
-export const totalStars = (r: GitHubRepo[]) => r.reduce((s, x) => s + x.stargazers_count, 0);
-export const totalForks = (r: GitHubRepo[]) => r.reduce((s, x) => s + x.forks_count, 0);
+export const totalStars = (r: GitHubRepo[]) => r.filter(x => !x.fork).reduce((s, x) => s + x.stargazers_count, 0);
+export const totalForks = (r: GitHubRepo[]) => r.filter(x => !x.fork).reduce((s, x) => s + x.forks_count, 0);
 
 export function languageBreakdown(repos: GitHubRepo[]) {
   const counts: Record<string, number> = {};
-  repos.forEach((r) => { if (r.language) counts[r.language] = (counts[r.language] || 0) + 1; });
+  repos.filter(r => !r.fork).forEach((r) => { if (r.language) counts[r.language] = (counts[r.language] || 0) + 1; });
   const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
   return Object.entries(counts)
     .map(([name, count]) => ({
