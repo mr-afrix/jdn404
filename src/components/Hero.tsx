@@ -1,183 +1,113 @@
-import { useState, useMemo, useEffect } from "react";
-import { Star, GitFork, Clock, ExternalLink, Search, BookOpen, ChevronLeft, ChevronRight, Filter, FolderGit2 } from "lucide-react";
-import { useGitHubRepos } from "@/hooks/useGitHub";
-import { LANGUAGE_COLORS, timeAgo, formatNumber } from "@/lib/github";
-import { Reveal } from "./Reveal";
+import { Github, MapPin, Calendar, Briefcase, Users, BookOpen, Star } from "lucide-react";
+import { useGitHubUser, useGitHubRepos, useTyping } from "@/hooks/useGitHub";
+import { formatDate, totalStars } from "@/lib/github";
 
-const PAGE_SIZE = 6;
+const ROLES = ["Full Stack Developer", "Python Enthusiast", "Open Source Builder", "Tech Explorer"] as
+const;
 
-type Sort = "updated" | "stars" | "forks" | "name" | "created";
-
-export const Repos = () => {
-  const { data: repos, isLoading } = useGitHubRepos();
-  const [q, setQ] = useState("");
-  const [sort, setSort] = useState<Sort>("updated");
-  const [lang, setLang] = useState<string>("All");
-  const [page, setPage] = useState(1);
-
-  const allLangs = useMemo(() => {
-    const s = new Set<string>();
-    repos?.forEach((r) => r.language && s.add(r.language));
-    return ["All", ...Array.from(s).sort()];
-  }, [repos]);
-
-  const filtered = useMemo(() => {
-    if (!repos) return [];
-    let r = repos.filter((x) => !x.fork);
-    if (q) {
-      const s = q.toLowerCase();
-      r = r.filter((x) => x.name.toLowerCase().includes(s) || x.description?.toLowerCase().includes(s));
-    }
-    if (lang !== "All") r = r.filter((x) => x.language === lang);
-    r.sort((a, b) => {
-      switch (sort) {
-        case "stars": return b.stargazers_count - a.stargazers_count;
-        case "forks": return b.forks_count - a.forks_count;
-        case "name": return a.name.localeCompare(b.name);
-        case "created": return new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime();
-        default: return new Date(b.pushed_at).getTime() - new Date(a.pushed_at).getTime();
-      }
-    });
-    return r;
-  }, [repos, q, sort, lang]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  useEffect(() => { setPage(1); }, [q, sort, lang]);
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
+export const Hero = () => {
+  const { data: user } = useGitHubUser();
+  const { data: repos } = useGitHubRepos();
+  const typed = useTyping(ROLES);
+  const ownRepos = repos ? repos.filter(r => !r.fork) : [];
+  const stars = repos ? totalStars(repos) : 0;
+  
   return (
-    <section className="px-4 py-6 max-w-3xl mx-auto">
-      <Reveal>
-        <div className="flex items-center gap-2 mb-3">
-          <BookOpen className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-bold">Repositories</h2>
-          <span className="text-xs text-muted-foreground">({filtered.length})</span>
-        </div>
-      </Reveal>
-
-      <Reveal delay={80}>
-        <div className="space-y-2 mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Search repos..."
-              className="w-full pl-9 pr-3 py-2 bg-muted/40 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-              <select
-                value={lang}
-                onChange={(e) => setLang(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-muted/40 border border-border rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/40"
-              >
-                {allLangs.map((l) => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as Sort)}
-              className="w-full px-3 py-2 bg-muted/40 border border-border rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/40"
-            >
-              <option value="updated">Recently Updated</option>
-              <option value="stars">Most Stars</option>
-              <option value="forks">Most Forks</option>
-              <option value="name">Name (A-Z)</option>
-            </select>
-          </div>
-        </div>
-      </Reveal>
-
-      {isLoading && (
-        <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="glass-card h-24 animate-pulse" />)}
-        </div>
-      )}
-
-      {!isLoading && filtered.length === 0 && (
-        <div className="glass-card p-6 text-center text-sm text-muted-foreground">
-          {q || lang !== "All" ? "No repos match your filters." : "No public repos yet."}
-        </div>
-      )}
-
-      <div className="space-y-2.5">
-        {pageItems.map((r, i) => {
-          const color = LANGUAGE_COLORS[r.language || ""] || LANGUAGE_COLORS.default;
-          return (
-            <Reveal key={r.id} delay={i * 40}>
-              <a
-                href={r.html_url}
-                target="_blank" rel="noopener noreferrer"
-                className="group flex items-start gap-3 p-3 glass-card transition hover:border-primary/40 hover:-translate-y-0.5"
-              >
-                <div
-                  className="p-2 rounded-lg shrink-0"
-                  style={{ background: `${color}1a`, border: `1px solid ${color}40` }}
-                >
-                  <FolderGit2 className="w-4 h-4" style={{ color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-sm truncate group-hover:text-primary transition">{r.name}</h3>
-                    <ExternalLink className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 shrink-0" />
-                  </div>
-                  {r.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{r.description}</p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px] text-muted-foreground">
-                    {r.language && (
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-                        {r.language}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-0.5"><Star className="w-3 h-3" />{formatNumber(r.stargazers_count)}</span>
-                    <span className="flex items-center gap-0.5"><GitFork className="w-3 h-3" />{formatNumber(r.forks_count)}</span>
-                    <span className="flex items-center gap-0.5 ml-auto"><Clock className="w-3 h-3" />{timeAgo(r.pushed_at)}</span>
-                  </div>
-                </div>
-              </a>
-            </Reveal>
-          );
-        })}
+    <section className="relative w-full">
+      {/* Banner */}
+      <div className="relative h-32 sm:h-40 w-full overflow-hidden">
+        <img
+          src="https://files.catbox.moe/mqcr6p.jpg"
+          alt="Banner"
+          className="w-full h-full object-cover"
+          loading="eager"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,hsl(var(--primary)/0.4),transparent_60%)]" />
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between gap-2 mt-4">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-muted/50 border border-border hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" /> Prev
-          </button>
-          <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setPage(i + 1)}
-                className={`w-7 h-7 text-xs rounded-md font-mono transition ${
-                  page === i + 1
-                    ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.5)]"
-                    : "bg-muted/40 hover:bg-muted text-muted-foreground"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+      <div className="relative px-4 -mt-14 max-w-3xl mx-auto">
+        <div className="flex items-end gap-3 sm:gap-4">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="absolute -inset-0.5 bg-gradient-to-br from-primary via-secondary to-accent rounded-2xl blur opacity-70 animate-pulse" />
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-2 border-background overflow-hidden bg-card">
+              {user ? (
+                <img src={user.avatar_url} alt={user.login} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <Github className="w-8 h-8 text-primary" />
+                </div>
+              )}
+            </div>
+            {user?.hireable && (
+              <span className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-background rounded-full animate-pulse" />
+            )}
           </div>
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg bg-muted/50 border border-border hover:border-primary/40 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Next <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+
+          {/* Name + handle inline */}
+          <div className="flex-1 min-w-0 pb-1">
+            <h1 className="text-xl sm:text-2xl font-bold truncate glow-text">
+              {user?.name || user?.login || "jdn404"}
+            </h1>
+            <a
+              href={user?.html_url || "https://github.com/jdn404"}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-primary hover:underline text-xs sm:text-sm"
+            >
+              <Github className="w-3.5 h-3.5" />@{user?.login || "jdn404"}
+            </a>
+          </div>
         </div>
-      )}
+
+        {/* Typing line */}
+        <div className="mt-3 flex items-center gap-2 font-mono text-sm sm:text-base">
+          <span className="text-primary">{">"}</span>
+          <span className="text-foreground/90">{typed}</span>
+          <span className="w-0.5 h-4 bg-primary animate-pulse" />
+        </div>
+
+        {/* Bio */}
+        {user?.bio && (
+          <p className="mt-2 text-muted-foreground text-sm leading-relaxed">{user.bio}</p>
+        )}
+
+        {/* Meta chips */}
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
+          {user?.location && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted/60 rounded-md text-muted-foreground">
+              <MapPin className="w-3 h-3" />{user.location}
+            </span>
+          )}
+          {user?.hireable && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-accent/15 text-accent rounded-md">
+              <Briefcase className="w-3 h-3" />Available
+            </span>
+          )}
+          {user?.created_at && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-muted/60 rounded-md text-muted-foreground">
+              <Calendar className="w-3 h-3" />Joined {formatDate(user.created_at)}
+            </span>
+          )}
+        </div>
+
+        {/* Quick stat row — compact, professional */}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {[
+            { icon: Users, label: "Followers", value: user?.followers ?? 0 },
+            { icon: BookOpen, label: "Repos", value: ownRepos.length },
+            { icon: Star, label: "Stars", value: stars },
+          ].map((s) => (
+            <div key={s.label} className="glass-card px-3 py-2.5 flex items-center gap-2">
+              <s.icon className="w-4 h-4 text-primary shrink-0" />
+              <div className="min-w-0">
+                <div className="text-base font-bold leading-none">{s.value}</div>
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground mt-0.5">{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 };
