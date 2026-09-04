@@ -1,51 +1,87 @@
 import { useEffect, useState } from "react";
-import { Hero } from "@/components/Hero";
-import { Stats } from "@/components/Stats";
-import { TechStack } from "@/components/TechStack";
-import { Languages } from "@/components/Languages";
-import { TopRepos } from "@/components/TopRepos";
-import { Repos } from "@/components/Repos";
-import { Social } from "@/components/Social";
+import { Activity } from "@/components/Activity";
 import { Footer } from "@/components/Footer";
+import { Hero } from "@/components/Hero";
 import { Loader } from "@/components/Loader";
+import { Nav } from "@/components/Nav";
+import { Social } from "@/components/Social";
+import { Stack } from "@/components/Stack";
+import { Stats } from "@/components/Stats";
+import { Work } from "@/components/Work";
+import { useTheme } from "@/hooks/useMotion";
 
-const ScrollProgress = () => {
-  const [p, setP] = useState(0);
+const ScrollRule = () => {
+  const [progress, setProgress] = useState(0);
   useEffect(() => {
     const onScroll = () => {
-      const h = document.documentElement.scrollHeight - window.innerHeight;
-      setP(h > 0 ? (window.scrollY / h) * 100 : 0);
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(scrollable > 0 ? Math.min(100, (window.scrollY / scrollable) * 100) : 0);
     };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
   }, []);
   return (
-    <div className="fixed top-0 left-0 right-0 h-0.5 z-50 bg-muted/30">
-      <div className="h-full bg-gradient-to-r from-primary via-secondary to-accent transition-all duration-150" style={{ width: `${p}%` }} />
+    <div className="no-print fixed inset-x-0 bottom-0 z-40 h-[2px] bg-transparent">
+      <div
+        className="h-full bg-gradient-to-r from-primary via-accent to-secondary"
+        style={{ width: `${progress}%`, transition: "width 120ms linear" }}
+      />
     </div>
   );
 };
 
-const Index = () => (
-  <div className="min-h-screen bg-background relative overflow-x-hidden">
-    <Loader />
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 left-0 w-[300px] h-[300px] bg-accent/5 rounded-full blur-3xl" />
-    </div>
-    <main className="relative z-10">
-      <Hero />
-      <Stats />
-      <TopRepos />
-      <TechStack />
-      <Languages />
-      <Repos />
-      <Social />
+export const Index = () => {
+  const { toggle } = useTheme();
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const typing = target && /^(input|textarea|select)$/i.test(target.tagName);
+      if (typing || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "/") {
+        event.preventDefault();
+        window.dispatchEvent(new Event("focus-repo-search"));
+      }
+      if (event.key.toLowerCase() === "t") toggle();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggle]);
+
+  return (
+    <div className="relative min-h-screen overflow-x-hidden">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-[0.5]"
+          style={{
+            backgroundImage:
+              "radial-gradient(hsl(var(--border)) 1px, transparent 0)",
+            backgroundSize: "34px 34px",
+            maskImage: "radial-gradient(circle at 50% 0%, #000, transparent 72%)",
+            WebkitMaskImage: "radial-gradient(circle at 50% 0%, #000, transparent 72%)",
+          }}
+        />
+      </div>
+
+      <Loader />
+      <Nav />
+      <main>
+        <Hero />
+        <Stats />
+        <Activity />
+        <Work />
+        <Stack />
+        <Social />
+      </main>
       <Footer />
-    </main>
-    <ScrollProgress />
-  </div>
-);
+      <ScrollRule />
+    </div>
+  );
+};
 
 export default Index;
