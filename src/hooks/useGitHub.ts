@@ -1,49 +1,50 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchUser, fetchRepos, GITHUB_USERNAME } from "@/lib/github";
-import { useEffect, useRef, useState } from "react";
+import { useMemo } from "react";
+import { buildActivity } from "@/lib/activity";
+import { fetchEvents, fetchRepos, fetchUser, GITHUB_USERNAME } from "@/lib/github";
+import { buildVisitReport } from "@/lib/visits";
 
-export function useGitHubUser(u = GITHUB_USERNAME) {
-  return useQuery({ queryKey: ["gh-user", u], queryFn: () => fetchUser(u) });
-}
-export function useGitHubRepos(u = GITHUB_USERNAME) {
-  return useQuery({ queryKey: ["gh-repos", u], queryFn: () => fetchRepos(u) });
-}
+const FIVE_MINUTES = 5 * 60 * 1000;
 
-export function useReveal < T extends HTMLElement > () {
-  const ref = useRef < T > (null);
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) { setVisible(true);
-          obs.disconnect(); } }, { threshold: 0.15, rootMargin: "0px 0px -50px 0px" }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-  return { ref, visible };
-}
+export const useGitHubUser = (username = GITHUB_USERNAME) =>
+  useQuery({
+    queryKey: ["github", "user", username],
+    queryFn: () => fetchUser(username),
+    staleTime: FIVE_MINUTES,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
 
-export function useTyping(texts: string[], typeMs = 80, deleteMs = 40, pauseMs = 1800) {
-  const [text, setText] = useState("");
-  const [i, setI] = useState(0);
-  const [del, setDel] = useState(false);
-  useEffect(() => {
-    const cur = texts[i];
-    if (!del && text === cur) {
-      const t = setTimeout(() => setDel(true), pauseMs);
-      return () => clearTimeout(t);
-    }
-    if (del && text === "") {
-      setDel(false);
-      setI((p) => (p + 1) % texts.length);
-      return;
-    }
-    const t = setTimeout(() => {
-      setText(del ? cur.slice(0, text.length - 1) : cur.slice(0, text.length + 1));
-    }, del ? deleteMs : typeMs);
-    return () => clearTimeout(t);
-  }, [text, del, i, texts, typeMs, deleteMs, pauseMs]);
-  return text;
-}
+export const useGitHubRepos = (username = GITHUB_USERNAME) =>
+  useQuery({
+    queryKey: ["github", "repos", username],
+    queryFn: () => fetchRepos(username),
+    staleTime: FIVE_MINUTES,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+export const useGitHubEvents = (username = GITHUB_USERNAME) =>
+  useQuery({
+    queryKey: ["github", "events", username],
+    queryFn: () => fetchEvents(username),
+    staleTime: FIVE_MINUTES,
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
+
+export const useActivity = (username = GITHUB_USERNAME) => {
+  const { data: events, ...rest } = useGitHubEvents(username);
+  const activity = useMemo(() => buildActivity(events ?? []), [events]);
+  return { activity, events: events ?? [], ...rest };
+};
+
+export const useProfileVisits = (username = GITHUB_USERNAME) =>
+  useQuery({
+    queryKey: ["visits", username],
+    queryFn: () => buildVisitReport(username),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: false,
+  });

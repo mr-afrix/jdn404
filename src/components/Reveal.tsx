@@ -1,12 +1,20 @@
-import { ReactNode } from "react";
-import { useReveal } from "@/hooks/useGitHub";
+import type { ReactNode } from "react";
+import { useReveal } from "@/hooks/useMotion";
 
-export const Reveal = ({ children, delay = 0 }: { children: ReactNode; delay?: number }) => {
+export const Reveal = ({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: ReactNode;
+  delay?: number;
+  className?: string;
+}) => {
   const { ref, visible } = useReveal<HTMLDivElement>();
   return (
     <div
       ref={ref}
-      className={`reveal-on-scroll ${visible ? "is-visible" : ""}`}
+      className={`reveal ${visible ? "reveal-in" : ""} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}

@@ -1,78 +1,138 @@
-import { useState } from "react";
-import { SiGithub, SiTelegram, SiWhatsapp, SiTiktok } from "react-icons/si";
-import { Heart, Copy, Check, ExternalLink } from "lucide-react";
+import { ArrowUpRight, Check, Copy, Package, Terminal } from "lucide-react";
+import { useCopy } from "@/hooks/useMotion";
+import { HANDLE, IDENTITY, PLATFORMS } from "@/lib/identity";
 import { Reveal } from "./Reveal";
+import { Panel } from "./Panel";
 
-const LINKS = [
-  { name: "GitHub", handle: "@jdn404", url: "https://github.com/jdn404", Icon: SiGithub, color: "#ffffff", bg: "from-gray-700/30 to-gray-900/30" },
-  { name: "Telegram", handle: "@mr_afrix", url: "https://t.me/mr_afrix", Icon: SiTelegram, color: "#26a5e4", bg: "from-sky-500/20 to-blue-700/20" },
-  { name: "WhatsApp", handle: "Channel", url: "https://whatsapp.com/channel/0029VbCqF4wDDmFd1whyGY3h", Icon: SiWhatsapp, color: "#25d366", bg: "from-green-500/20 to-emerald-700/20" },
-  { name: "TikTok", handle: "@mr_afrix", url: "https://tiktok.com/@mr_afrix", Icon: SiTiktok, color: "#ff0050", bg: "from-pink-500/20 to-rose-700/20" },
+const COMMANDS = [
+  { label: "npm", command: `npm view ${HANDLE}`, hint: "registry.npmjs.org" },
+  { label: "pip", command: `pip index versions ${HANDLE}`, hint: "pypi.org" },
 ];
 
 export const Social = () => {
-  const [copied, setCopied] = useState<string | null>(null);
-
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(text);
-      setTimeout(() => setCopied(null), 1500);
-    } catch {}
-  };
+  const { copied, copy } = useCopy();
 
   return (
-    <section className="px-4 py-6 max-w-3xl mx-auto">
+    <section id="connect" className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8">
       <Reveal>
-        <div className="flex items-center gap-2 mb-4">
-          <Heart className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-bold">Connect With Me</h2>
+        <div className="mb-6 flex flex-wrap items-end gap-x-4 gap-y-2">
+          <div>
+            <p className="eyebrow">Connect</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight sm:text-[1.7rem]">Every handle, one name</h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {PLATFORMS.length} accounts under <span className="font-mono text-foreground">{HANDLE}</span>
+          </p>
         </div>
       </Reveal>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {LINKS.map((l, i) => (
-          <Reveal key={l.name} delay={i * 60}>
-            <div
-              className={`group relative overflow-hidden rounded-xl border border-border/60 bg-gradient-to-br ${l.bg} backdrop-blur-sm hover:border-primary/40 transition-all hover:-translate-y-0.5`}
-            >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {PLATFORMS.map((platform, i) => (
+          <Reveal key={platform.id} delay={i * 55}>
+            <Panel hover className="group relative h-full">
               <a
-                href={l.url}
-                target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2.5 p-3"
+                href={platform.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex h-full items-center gap-3.5 p-4"
+                style={{ "--brand": platform.accent } as React.CSSProperties}
               >
-                <div
-                  className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center bg-background/40 border border-border/40 group-hover:scale-110 transition-transform"
-                  style={{ boxShadow: `0 0 12px ${l.color}33` }}
-                >
-                  <l.Icon size={18} style={{ color: l.color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold leading-none">{l.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate mt-1">{l.handle}</div>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition" />
+                <span className="brand-tile">
+                  <platform.Icon size={19} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm font-semibold leading-tight">{platform.label}</span>
+                    <span className="rounded-full border border-line px-1.5 py-px text-[10px] uppercase tracking-wider text-muted-foreground">
+                      {platform.kind}
+                    </span>
+                  </span>
+                  <span className="mt-0.5 block truncate font-mono text-xs text-primary">{platform.handle}</span>
+                  <span className="mt-1 block truncate text-[11px] text-muted-foreground">{platform.hint}</span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100 -translate-x-1" />
               </a>
               <button
-                onClick={(e) => { e.preventDefault(); copy(l.url); }}
-                className="absolute top-1 right-1 p-1 rounded-md hover:bg-background/50 transition opacity-60 hover:opacity-100"
-                aria-label={`Copy ${l.name} link`}
+                type="button"
+                onClick={() => copy(platform.url)}
+                className="absolute right-2.5 top-2.5 grid h-7 w-7 place-items-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-line hover:bg-card2 hover:text-foreground"
+                aria-label={`Copy the ${platform.label} link`}
               >
-                {copied === l.url
-                  ? <Check className="w-3 h-3 text-green-500" />
-                  : <Copy className="w-3 h-3 text-muted-foreground" />}
+                {copied === platform.url ? (
+                  <Check className="h-3.5 w-3.5 text-primary" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
               </button>
-            </div>
+            </Panel>
           </Reveal>
         ))}
       </div>
 
-      <Reveal delay={300}>
-        <div className="mt-4 flex items-center justify-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-lg">
-          <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs font-medium text-green-500">Available for new projects & collabs</span>
-        </div>
-      </Reveal>
+      <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <Reveal delay={330}>
+          <Panel className="flex h-full flex-col justify-between p-4 sm:p-5">
+            <div className="flex items-center gap-2">
+              <span className="relative grid h-8 w-8 place-items-center rounded-full bg-primary/10 border border-primary/30">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                <span className="absolute h-2 w-2 rounded-full bg-primary animate-ping" />
+              </span>
+              <h3 className="text-sm font-semibold">{IDENTITY.availability}</h3>
+            </div>
+            <p className="mt-2.5 text-[13px] leading-relaxed text-muted-foreground">
+              Best contact route is Telegram, replies usually land the same day. For code, open an issue on the
+              repository first so the context stays with the project.
+            </p>
+            <a
+              href={`https://t.me/${HANDLE}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="mt-3.5 inline-flex w-fit items-center gap-1.5 rounded-lg border border-line bg-card2 px-3 py-1.5 text-xs transition-colors hover:border-primary/45"
+            >
+              Start a chat
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            </a>
+          </Panel>
+        </Reveal>
+
+        <Reveal delay={390}>
+          <Panel className="h-full p-4 sm:p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <Package className="h-4 w-4 text-secondary" />
+              <h3 className="text-sm font-semibold">Packages</h3>
+              <span className="ml-auto font-mono text-[11px] text-muted-foreground">same username</span>
+            </div>
+            <ul className="space-y-2">
+              {COMMANDS.map((row) => (
+                <li
+                  key={row.command}
+                  className="flex items-center gap-2 rounded-lg border border-line bg-background/50 px-3 py-2"
+                >
+                  <Terminal className="h-3.5 w-3.5 shrink-0 text-primary" />
+                  <code className="min-w-0 flex-1 truncate font-mono text-[11.5px]">{row.command}</code>
+                  <span className="hidden shrink-0 text-[10px] text-muted-foreground sm:block">{row.hint}</span>
+                  <button
+                    type="button"
+                    onClick={() => copy(row.command)}
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded text-muted-foreground transition-colors hover:bg-card2 hover:text-foreground"
+                    aria-label={`Copy the ${row.label} command`}
+                  >
+                    {copied === row.command ? (
+                      <Check className="h-3.5 w-3.5 text-primary" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+              Published packages live under the same name on both registries. Nothing is installed from this page, the
+              commands are here to copy.
+            </p>
+          </Panel>
+        </Reveal>
+      </div>
     </section>
   );
 };
